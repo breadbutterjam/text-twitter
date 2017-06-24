@@ -250,10 +250,11 @@ function addTweets(arrTweets) {
   		strHTML = strHTML1;
   		currTweet = arrTweets[i];
 
-  		
-		tweetDate = getDateTime(currTweet.created_at).date;
+  		tweetDate = getDateTime(currTweet.created_at).date;
 
-  		if(!currTweet.retweeted_status)
+  		isRT = (currTweet.retweeted_status === undefined) ? false : true
+
+  		if(!isRT)
   		{
 			//if tweet is NOT a retweet do the following   		
 	  		tweetText = currTweet.text;		
