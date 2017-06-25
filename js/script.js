@@ -43,6 +43,8 @@ function bodyLoaded(argument) {
 	
 	fillYearSelection();
 
+	console.log('v0.1')
+
 }
 
 /*
@@ -223,7 +225,7 @@ function addTweets(arrTweets) {
 	// body...
 	/*
 	HTML structure to be used to add tweets
-	<div class="tweet">
+	<div class="tweet retweeted">
     	<div class="tweetHeader"><div class="date"></div><div class="RT"></div></div>
     	<div class="tweetText"></div>
   </div>
@@ -239,33 +241,54 @@ function addTweets(arrTweets) {
   var strHTML;
 
   var strHTML1 = '<div class="tweet';
-  var strHTML2 = '"><div class="tweetHeader"><div class="date">';
-  var strHTML2a = '</div><div class="RT">'
+  var strRTClass;
+  var strHTML2 = '">'
+  var strHeaderHTML = '<div class="tweetHeader"><div class="date">';
+  var strHeaderHTML2;
   var strHTML3 = '</div></div><div class="tweetText">';
+  var strHTML4 = '</div>'
   var rtUser;
-
+  var mediaURLInText, mediaURLToUse, mediaLinkHTML;
 
   for (var i=0; i<numberOfTweets; i++)
   {
-  		strHTML = strHTML1;
+  		// strHTML = strHTML1;
+		strRTClass = '';
+		rtUser = '';
+		strHeaderHTML2 = '';
+
   		currTweet = arrTweets[i];
 
   		tweetDate = getDateTime(currTweet.created_at).date;
 
   		isRT = (currTweet.retweeted_status === undefined) ? false : true
 
-  		if(!isRT)
+  		if(isRT)
   		{
-			//if tweet is NOT a retweet do the following   		
-	  		tweetText = currTweet.text;		
-	  		strHTML += strHTML2 + tweetDate + strHTML3 + tweetText + '</div>'
+			//if tweet is a retweet do the following   		
+			rtUser = '@' + currTweet.retweeted_status.user.screen_name;
+  			tweetText = currTweet.retweeted_status.text;
+	  		strRTClass = ' retweeted'
+	  		strHeaderHTML2 = '</div><div class="RT">';	  		
   		}
   		else
   		{
-  			rtUser = currTweet.retweeted_status.user.screen_name;
-  			tweetText = currTweet.retweeted_status.text;
-  			strHTML += ' retweeted' + strHTML2 + tweetDate + strHTML2a + '@' + rtUser + strHTML3 + tweetText + '</div>'	
+  			tweetText = currTweet.text;		
   		}
+
+  		//the twitter data contains media information here >> currTweet.entities.media[0].url
+  		//it will be present in the tweetText. this needs to be replaced with an actual link. 
+
+  		if (currTweet.entities.media.length > 0)
+  		{
+  			mediaURLInText = currTweet.entities.media[0].url;
+  			mediaURLToUse = currTweet.entities.media[0].media_url;
+  			mediaLinkHTML = '<a href="'+ mediaURLToUse + '" target="_blank">media</a>'
+  			tweetText = tweetText.replace(mediaURLInText, mediaLinkHTML);
+  		}
+
+
+  		strHTML = strHTML1 + strRTClass + strHTML2 + strHeaderHTML + tweetDate + strHeaderHTML2 + rtUser + strHTML3 + tweetText + strHTML4;
 
   		$(".tweetsHolder").append(strHTML);
   }
