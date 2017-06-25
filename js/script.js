@@ -36,6 +36,8 @@ var dataObj = {};
 function bodyLoaded(argument) {
 	// body...
 
+	ShowHidePreloader(true);
+
 	dataObj.years = getYears();
 	dataObj.months = getMonths();
 
@@ -43,8 +45,23 @@ function bodyLoaded(argument) {
 	
 	fillYearSelection();
 
-	console.log('v0.1')
+	console.log('v0.002')
 
+}
+
+function ShowHidePreloader(bShow) {
+	// body...
+	if (bShow === false)
+	{
+		$('.Preloader').hide();
+		$('.tweetsHolder').css('opacity', 1);
+	}
+	else 
+	{
+		$('.Preloader').show();
+		$('.tweetsHolder').css('opacity', 0.1);
+	}
+	
 }
 
 /*
@@ -75,6 +92,8 @@ function updateCurrentMonthYear(argument) {
 
 	currTweetIndex = tweet_index[arrDictionary[currYear][currMonth]]
 	
+
+
 	loadJS(currTweetIndex.file_name);
 }
 
@@ -281,10 +300,18 @@ function addTweets(arrTweets) {
 
   		if (currTweet.entities.media.length > 0)
   		{
+  			//if tweet contains media
   			mediaURLInText = currTweet.entities.media[0].url;
   			mediaURLToUse = currTweet.entities.media[0].media_url;
   			mediaLinkHTML = '<a href="'+ mediaURLToUse + '" target="_blank">media</a>'
   			tweetText = tweetText.replace(mediaURLInText, mediaLinkHTML);
+  		}
+  		else if (currTweet.entities.urls.length > 0)
+  		{
+  			mediaURLInText = currTweet.entities.urls[0].url;
+  			mediaURLToUse = currTweet.entities.urls[0].expanded_url;
+  			mediaLinkHTML = '<a href="'+ mediaURLToUse + '" target="_blank">media</a>'
+  			tweetText = tweetText.replace(mediaURLInText, mediaLinkHTML);	
   		}
 
 
@@ -303,13 +330,14 @@ function addTweets(arrTweets) {
 
 function loadJS(fileName) {
 	// body...
+	ShowHidePreloader(true);
 
 	$.getScript(fileName)
 	  .done(function( script, textStatus ) {
 	    // console.log( textStatus );
 
 
-
+	    ShowHidePreloader(false);
 	    addTweets(Grailbird.data[currTweetIndex.var_name])
 
 
