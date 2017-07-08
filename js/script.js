@@ -1,3 +1,4 @@
+var versionNumber = '0.0038';
 /*
 initializing standard Grailbird object. This is required to access the data as provided by twitter
 
@@ -45,7 +46,7 @@ function bodyLoaded(argument) {
 	
 	fillYearSelection();
 
-	console.log('v0.002')
+	console.log(versionNumber)
 
 }
 
@@ -79,6 +80,26 @@ function addEventListeners(argument) {
 	  cache: true
 	});
 }
+
+function makeDateClickable(argument) {
+	// body...
+	// console.log("makeDateClickable");
+	$('.date').on("click", onDateClick);
+}
+
+
+function onDateClick(argument) {
+	// body...
+	// console.log("onDateClick");
+	// console.log($(this));
+
+	var strOtherInfo = $(this).attr('theotherdateinfo');
+	var strHTML = $(this).html();
+
+	$(this).attr('theotherdateinfo', strHTML);
+	$(this).html(strOtherInfo);
+}
+
 
 /*
 	update value of current month year
@@ -252,7 +273,7 @@ function addTweets(arrTweets) {
 
   $(".tweetsHolder").html('')
 
-  var tweetText, tweetDate, isRT;
+  var tweetText, tweetDateTime, isRT;
 
   var numberOfTweets = arrTweets.length;
   var currTweet;
@@ -262,12 +283,15 @@ function addTweets(arrTweets) {
   var strHTML1 = '<div class="tweet';
   var strRTClass;
   var strHTML2 = '">'
-  var strHeaderHTML = '<div class="tweetHeader"><div class="date">';
+  var strHeaderHTML = '<div class="tweetHeader"><div ';
+  var strHeaderHTML1a = 'theotherdateinfo="'
+  var strHeaderHTML1b = '" class="date">'
   var strHeaderHTML2;
   var strHTML3 = '</div></div><div class="tweetText">';
   var strHTML4 = '</div>'
   var rtUser;
   var mediaURLInText, mediaURLToUse, mediaLinkHTML;
+  var strReadableDateTimeInfo;
 
   for (var i=0; i<numberOfTweets; i++)
   {
@@ -278,7 +302,9 @@ function addTweets(arrTweets) {
 
   		currTweet = arrTweets[i];
 
-  		tweetDate = getDateTime(currTweet.created_at).date;
+  		tweetDateTime = getDateTime(currTweet.created_at);
+  		shortDate = normalizeDate(tweetDateTime.date);
+  		strReadableDateTimeInfo = getReadableDateTime(tweetDateTime);
 
   		isRT = (currTweet.retweeted_status === undefined) ? false : true
 
@@ -315,7 +341,7 @@ function addTweets(arrTweets) {
   		}
 
 
-  		strHTML = strHTML1 + strRTClass + strHTML2 + strHeaderHTML + tweetDate + strHeaderHTML2 + rtUser + strHTML3 + tweetText + strHTML4;
+  		strHTML = strHTML1 + strRTClass + strHTML2 + strHeaderHTML + strHeaderHTML1a + strReadableDateTimeInfo + strHeaderHTML1b + shortDate + strHeaderHTML2 + rtUser + strHTML3 + tweetText + strHTML4;
 
   		$(".tweetsHolder").append(strHTML);
   }
@@ -336,9 +362,10 @@ function loadJS(fileName) {
 	  .done(function( script, textStatus ) {
 	    // console.log( textStatus );
 
-
+	    
 	    ShowHidePreloader(false);
 	    addTweets(Grailbird.data[currTweetIndex.var_name])
+		makeDateClickable();
 
 
 	  })
@@ -357,21 +384,76 @@ function loadJS(fileName) {
 function getDateTime(strDateTime) {
 	// body...
 	var arrDateTimeOffset = strDateTime.split(" ");
-	var retObject = {};
+	
+	//time stored in the twitter data is at +00000 GMT, to get the time in IST we add 5 hours 30 mins
+	var oAddDateTime = {};
+	oAddDateTime.time = "05:30:00"; 
+
+	var oInitialDateTime = {};
+	oInitialDateTime.date = arrDateTimeOffset[0];
+	oInitialDateTime.time = arrDateTimeOffset[1];
 
 
-	var strDate = arrDateTimeOffset[0];
+	var oFinalDateTime = addTime(oInitialDateTime, oAddDateTime);
 
-	retObject.date = normalizeDate(strDate);
-
-	retObject.time = arrDateTimeOffset[1];
-
-	//time stored in the twitter data is 5 hours 30 mins behind the actual time of posting the tweet. 
-	//adjusting for that time. 
-	var arrTime = arrDateTimeOffset[1].split(":");
-	// var strHours = 
+	retObject = {};
+	retObject.date = oFinalDateTime.date;
+	retObject.time = oFinalDateTime.time;
 
 	return retObject;
+}
+
+/*
+	function takes date and time information object and returns a readable long format,
+	object.date will be in the "yyyy-mm-dd" format
+	object.time will be in the "hh:mm:ss" format
+	the function will return a readable date time string in the following format "dd, mmmm hh:mm PM/AM" 
+
+*/
+
+function getReadableDateTime(oDateTime) {
+	// body...
+
+	// var strReadableDateTime = "07 June, 08:14 PM";
+	var strReadableDateTime = "";
+	var strDate = oDateTime.date;
+	var strTime = oDateTime.time;
+
+	strReadableDateTime = normalizeDate(strDate) + ", " + getTimeInAMPM(strTime);
+
+	return strReadableDateTime;
+}
+
+
+/*
+	function takes time in 24h format as "hh:mm:ss" and returns time in AM/PM "hh:mm"
+
+*/
+function getTimeInAMPM(strLongTime) {
+	// body...
+	var arrTime = strLongTime.split(":");
+	var nHours = Number(arrTime[0]);
+
+	// var nMins = Number(arrTime[1]);
+	// var nSecs = Number(arrTime[2]);
+
+	var arrAMPM = ['AM', 'PM'];
+	var strReturnHours, strReturnMins, strReturnAMPM;
+	strReturnMins = arrTime[1];
+
+	if (nHours < 12)
+	{
+		//if time is after noon, add AM and keep time as is. 
+		strReturnAMPM = arrAMPM[0];
+		strReturnHours = String(nHours)
+	}
+	else
+	{
+		strReturnHours = String(nHours % 12);
+		strReturnAMPM = arrAMPM[1];
+	}
+
+	return strReturnHours + ":" + strReturnMins + " " + strReturnAMPM;
 }
 
 
@@ -393,22 +475,108 @@ function normalizeDate(strDateMonthYear) {
 	return strDate + " " + strReadableMonth;
 }
 
-
-function addTime(strDateTime) {
+/*
+	function checks if length of string is less than 2 characters, it will prepend zeroes to it. 
+	if function is passed "7", it returns "07"
+*/
+function prependZeroes(argument) {
 	// body...
-	var arrDateTime = strDateTime.split(" ");
-	var strDate = arrDateTime[0];
-	var strTime = arrDateTime[1];
-
-	var arrTime = strTime.split(":");
-	var nHours = Number(arrTime[0]);
-	var nMins = Number(arrTime[1]);
-	var nSecs = Number(arrTime[2]);
-
-	// var 
+	if (argument.length === 1)
+	{
+		return "0" + argument;
+	}
+	else if(argument.length === 0)
+	{
+		return "00";
+	} else if (argument.length === 2)
+	{
+		return argument;
+	}
 
 }
 
+/*
+	function takes two arguments, initial date time, and time to add. 
+	initial date time will be an object in the form object.date = "yyyy-mm-dd" and object.time = "hh:mm:ss"
+	time to add will be in the same format as initial date and time. If no day is to be added, send object.date as null. 
+*/
 
 
+function addTime(oInitialDateTime, oAddDateTime) {
+	// body...
 
+	//split the intial date into year, month, and date. store it in this array
+	var arrInitialDate = oInitialDateTime.date.split(" ");
+
+	//split initial time into hours, minutes, and seconds and store it in this array
+	var arrInitialTime = oInitialDateTime.time.split(":");
+
+	//store hours, mins, and secs individually in these variables
+	var nInitialHour, nInitialMins, nInitialSecs;
+	nInitialHour = Number(arrInitialTime[0]);
+	nInitialMins = Number(arrInitialTime[1]);
+	nInitialSecs = Number(arrInitialTime[2]);
+
+	//store initial year, month, and date in these following variables
+	var nInitialYear, nInitialMonth, nInitialDate;
+	nInitialYear = Number(arrInitialDate[0]);
+	nInitialMonth = Number(arrInitialDate[1]);
+	nInitialDate = Number(arrInitialDate[2]);
+
+	//if date is to be added, i.e. if oAddDateTime.date is not null
+	if (oAddDateTime.date)
+	{
+		//split the date to add into year, month, and date. store it in this array
+		var arrAddDate = oAddDateTime.date.split(" ");	
+
+		//store initial year, month, and date in these following variables
+		var nAddYear, nAddMonth, nAddDate;
+		nAddYear = Number(arrAddDate[0]);
+		nAddMonth = Number(arrAddDate[1]);
+		nAddDate = Number(arrAddDate[2]);
+	}
+	
+
+	//split initial time into hours, minutes, and seconds and store it in this array
+	var arrAddTime = oAddDateTime.time.split(":");
+
+	//store hours, mins, and secs individually in these variables
+	var nAddHour, nAddMins, nAddSecs;
+	nAddHour = Number(arrAddTime[0]);
+	nAddMins = Number(arrAddTime[1]);
+	nAddSecs = Number(arrAddTime[2]);
+
+	var nFinalHour, nFinalMins, nFinalSecs;
+	var nCarryDate, nCarryHour, nCarryMins;
+
+	nFinalSecs = (nInitialSecs + nAddSecs) % 60;
+	nCarryMins = Math.floor((nInitialSecs + nAddSecs) / 60);
+
+	nFinalMins = (nInitialMins + nAddMins + nCarryMins) % 60;
+	nCarryHours = Math.floor((nInitialMins + nAddMins + nCarryMins) / 60)
+
+	nFinalHours = (nInitialHour + nAddHour + nCarryHours) % 24;
+	nCarryDate = Math.floor((nInitialHour + nAddHour + nCarryHours) / 24)
+
+	//not added code to handle shifting of dates. 
+	
+	var strFinalTime;
+	strFinalTime = prependZeroes(String(nFinalHours)) + ":" + prependZeroes(String(nFinalMins)) + ":" + prependZeroes(String(nFinalSecs));
+
+
+	var returnObject = {};
+
+	returnObject.date = oInitialDateTime.date;
+	returnObject.time = strFinalTime;
+
+	return returnObject;
+
+}
+
+/* trial data for checking addTime function 
+var oInitial = {};
+oInitial.time = "05:16:42";
+oInitial.date = "2017-06-15";
+var oAddDateTime = {};
+oAddDateTime.time = "05:30:00";
+*/
